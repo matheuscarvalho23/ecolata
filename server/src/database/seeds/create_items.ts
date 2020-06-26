@@ -1,5 +1,11 @@
 import Knex from "knex";
 
+/**
+ * Create Seeds table items
+ *
+ * @export
+ * @param {Knex} knex
+ */
 export async function seed(knex: Knex) {
   await knex("items").insert([
     { title: "Lâmpadas", image: "lampadas.svg" },

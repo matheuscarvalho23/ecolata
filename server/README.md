@@ -1,4 +1,4 @@
-# Commands requireds
+# Commands required
 
 yarn init -y
 
@@ -19,6 +19,10 @@ yarn add ts-node-dev -D
 yarn add knex
 
 yarn add sqlite3
+
+yarn add cors
+
+yarn add @types/cors -D
 
 # Run server
 
