@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { Map, TileLayer, Marker } from 'react-leaflet';
 import axios from 'axios';
+import { LeafletMouseEvent } from 'leaflet';
 
 import api from '../../services/api';
 import './styles.css';
@@ -42,7 +43,18 @@ const Point = () => {
   const [ufs, setUfs]       = useState<string[]>([]); // Pega os dados de "IBGEUF", transformando em um array;
   const [cities, setCities] = useState<string[]>([]); // Pega os dados de "IBGECities", transformando em array;
 
-  const [selectedUf, setSelectedUf] = useState('0'); // Pega os dados da "UF" selecionada e faz a busca das cidades dessa "UF"
+  const [selectedUf, setSelectedUf]             = useState('0'); // Pega os dados da "UF" selecionada e faz a busca das cidades dessa "UF";
+  const [selectedCity, setSelectedCity]         = useState('0'); // Pega os dados da "City" selecionada e atribui para usar no cadastro;
+  const [inicialPosition, setInicialPosition]   = useState<[number,number]>([0,0]); // Pega a Latitude & Longitude atual a partir da localização do usuário;
+  const [selectedPosition, setSelectedPosition] = useState<[number,number]>([0,0]); // Pega a Latitude & Longitude ao clicar em uma posição no mapa;
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(position => {
+      const { latitude, longitude } = position.coords;
+
+      setInicialPosition([latitude, longitude]);
+    });
+  }, []);
 
   useEffect(() => {
     api
@@ -76,13 +88,32 @@ const Point = () => {
   }, [selectedUf]);
 
   /**
-   * Função para definir qual UF foi selecionada
+   * Função para definir qual UF foi selecionada;
    *
+   * @param {ChangeEvent<HTMLSelectElement>} e
    */
   function handleSelectUf(e: ChangeEvent<HTMLSelectElement>) {
     const uf = e.target.value;
 
     setSelectedUf(uf);
+  }
+
+  /**
+   * Função para definir qual Cidade foi selecionada
+   *
+   * @param {ChangeEvent<HTMLSelectElement>} e
+   */
+  function handleSelectCity(e: ChangeEvent<HTMLSelectElement>) {
+    const city = e.target.value;
+
+    setSelectedCity(city);
+  }
+
+  function handleMap(e: LeafletMouseEvent) {
+    setSelectedPosition([
+      e.latlng.lat,
+      e.latlng.lng,
+    ]);
   }
 
   return (
@@ -140,12 +171,12 @@ const Point = () => {
             <span>Selecione o Endereço no mapa</span>
           </legend>
 
-          <Map center={[ 40.7664898, -73.9813368 ]} zoom={14}>
+          <Map center={inicialPosition} zoom={15} onClick={handleMap}>
             <TileLayer
               attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
-            <Marker position={[ 40.7664898, -73.9813368 ]}/>
+            <Marker position={selectedPosition}/>
           </Map>
 
           <div className="field-group">
@@ -161,7 +192,7 @@ const Point = () => {
 
             <div className="field">
               <label htmlFor="city">Cidade</label>
-              <select name="city" id="city">
+              <select onChange={handleSelectCity} name="city" id="city" value={selectedCity}>
                 <option value="0"> -- Selecione uma cidade</option>
                 {cities.map(city => (
                   <option key={city} value={city}>{city}</option>
