@@ -1,4 +1,4 @@
-import React, { useEffect, useState, ChangeEvent } from 'react';
+import React, { useEffect, useState, ChangeEvent, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { FiArrowLeft } from 'react-icons/fi';
 import { Map, TileLayer, Marker } from 'react-leaflet';
@@ -47,6 +47,14 @@ const Point = () => {
   const [selectedCity, setSelectedCity]         = useState('0'); // Pega os dados da "City" selecionada e atribui para usar no cadastro;
   const [inicialPosition, setInicialPosition]   = useState<[number,number]>([0,0]); // Pega a Latitude & Longitude atual a partir da localização do usuário;
   const [selectedPosition, setSelectedPosition] = useState<[number,number]>([0,0]); // Pega a Latitude & Longitude ao clicar em uma posição no mapa;
+  const [selectedItems, setSelectedItems]       = useState<number[]>([]); // Pega os items selecionados;
+
+  // Pega os dados do inseridos no formulário;
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    whatsapp: '',
+  });
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(position => {
@@ -109,11 +117,74 @@ const Point = () => {
     setSelectedCity(city);
   }
 
+  /**
+   * Função para selecionar a localização no mapa
+   *
+   * @param {LeafletMouseEvent} e
+   */
   function handleMap(e: LeafletMouseEvent) {
     setSelectedPosition([
       e.latlng.lat,
       e.latlng.lng,
     ]);
+  }
+
+  /**
+   * Função para pegar os dados inseridos nos inputs;
+   *
+   * @param {ChangeEvent<HTMLInputElement>} e
+   */
+  function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  }
+
+  /**
+   * Função para receber o ID do item de coleta e posteriormente enviá-lo para o cadastro
+   *
+   * @param {number} id
+   */
+  function handleSelectItem(id: number) {
+    const itemSelected = selectedItems.findIndex(item => item===id);
+
+    if (itemSelected >= 0) {
+      const filteredItems = selectedItems.filter(item => item !== id);
+
+      setSelectedItems(filteredItems);
+    } else {
+      setSelectedItems([ ...selectedItems, id ]);
+    }
+  }
+
+  /**
+   * Função para cadastrar ponto de coleta;
+   *
+   * @param {FormEvent} e
+   */
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+
+    const { name, email, whatsapp } = formData;
+    const [latitude, longitude]     = selectedPosition;
+    const uf    = selectedUf;
+    const city  = selectedCity;
+    const items = selectedItems;
+
+    const data = {
+      name,
+      email,
+      whatsapp,
+      uf,
+      city,
+      latitude,
+      longitude,
+      items
+    };
+
+    await api
+      .post('points', data);
+
+    alert('criado!')
   }
 
   return (
@@ -127,7 +198,7 @@ const Point = () => {
         </Link>
       </header>
 
-      <form>
+      <form onSubmit={handleSubmit}>
         <h1>Cadastro do <br/> ponto de coleta</h1>
 
         <fieldset>
@@ -141,6 +212,7 @@ const Point = () => {
               type="text"
               id="name"
               name="name"
+              onChange={handleInputChange}
             /> <br/>
 
             <div className="field-group">
@@ -150,6 +222,7 @@ const Point = () => {
                   type="email"
                   id="email"
                   name="email"
+                  onChange={handleInputChange}
                 />
               </div>
 
@@ -159,6 +232,7 @@ const Point = () => {
                   type="text"
                   id="whatsapp"
                   name="whatsapp"
+                  onChange={handleInputChange}
                 />
               </div>
             </div>
@@ -210,7 +284,11 @@ const Point = () => {
 
           <ul className="items-grid">
             {items.map(item => (
-              <li key={item.id}>
+              <li
+                key={item.id}
+                onClick={() => handleSelectItem(item.id)}
+                className={selectedItems.includes(item.id) ? 'selected' : '' }
+              >
                 <img src={item.image_url} alt={item.title}/>
                 <span>{item.title}</span>
               </li>
